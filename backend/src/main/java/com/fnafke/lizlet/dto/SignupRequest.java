@@ -1,4 +1,4 @@
-package com.fnafke.lizlet.controllers.dto;
+package com.fnafke.lizlet.dto;
 
 public record SignupRequest(String username, String email, String password) {
 

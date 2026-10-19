@@ -2,7 +2,7 @@ package com.fnafke.lizlet.services.interfaces;
 
 import java.util.UUID;
 
-import com.fnafke.lizlet.controllers.dto.AuthenticationResponse;
+import com.fnafke.lizlet.dto.AuthenticationResponse;
 import com.fnafke.lizlet.models.User;
 
 /**

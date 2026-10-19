@@ -1,4 +1,4 @@
-package com.fnafke.lizlet.controllers.dto;
+package com.fnafke.lizlet.dto;
 
 import java.util.UUID;
 

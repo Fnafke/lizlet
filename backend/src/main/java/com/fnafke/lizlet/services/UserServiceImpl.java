@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.fnafke.lizlet.controllers.dto.AuthenticationResponse;
+import com.fnafke.lizlet.dto.AuthenticationResponse;
 import com.fnafke.lizlet.models.Role;
 import com.fnafke.lizlet.models.User;
 import com.fnafke.lizlet.models.exceptions.NotFoundException;

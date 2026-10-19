@@ -11,9 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.fnafke.lizlet.controllers.dto.AuthenticationRequest;
-import com.fnafke.lizlet.controllers.dto.AuthenticationResponse;
-import com.fnafke.lizlet.controllers.dto.SignupRequest;
+import com.fnafke.lizlet.dto.AuthenticationRequest;
+import com.fnafke.lizlet.dto.AuthenticationResponse;
+import com.fnafke.lizlet.dto.SignupRequest;
 import com.fnafke.lizlet.services.interfaces.UserService;
 
 import jakarta.servlet.http.HttpServletResponse;
