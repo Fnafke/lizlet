@@ -11,6 +11,9 @@ import { ThemeProvider } from './components/theme/ThemeProvider'
 import { SidebarProvider } from './components/ui/sidebar'
 import { TooltipProvider } from './components/ui/tooltip'
 import { AuthProvider } from './components/context/AuthProvider'
+import StudySetsPage from './Pages/StudySetPages/StudySetsPage'
+import StudySetFormPage from './Pages/StudySetPages/StudySetFormPage'
+import StudySetDetailPage from './Pages/StudySetPages/StudySetDetailPage'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -19,6 +22,10 @@ const router = createBrowserRouter(
       <Route path="/signup" element={<SignupPage />} />
       <Route element={<RequireAuth />}>
         <Route path="/" element={<HomePage />} />
+        <Route path="/study-sets" element={<StudySetsPage />} />
+        <Route path="/study-sets/new" element={<StudySetFormPage />} />
+        <Route path="/study-sets/:setId" element={<StudySetDetailPage />} />
+        <Route path="/study-sets/:setId/edit" element={<StudySetFormPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </>
