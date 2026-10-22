@@ -7,15 +7,35 @@ import { useCallback, useEffect, useState } from "react";
 interface FlashcardViewerProps {
     cards: FlashCard[];
     gradient: string;
+    reversed?: boolean;
 }
 
-const FlashcardViewer = ({ cards, gradient }: FlashcardViewerProps) => {
+// Long text (usually definitions) gets a smaller font so it fits on the card.
+const textSize = (text: string) => {
+    if (text.length > 120) return "text-lg";
+    if (text.length > 50) return "text-xl sm:text-2xl";
+    return "text-2xl sm:text-3xl";
+};
+
+const FlashcardViewer = ({ cards, gradient, reversed = false }: FlashcardViewerProps) => {
     const [index, setIndex] = useState(0);
     const [flipped, setFlipped] = useState(false);
+    const [previousReversed, setPreviousReversed] = useState(reversed);
+
+    // When the sides are swapped, show the front of the current card again.
+    if (previousReversed !== reversed) {
+        setPreviousReversed(reversed);
+        setFlipped(false);
+    }
 
     const safeIndex = Math.min(index, cards.length - 1);
     const card = cards[safeIndex];
     const progress = ((safeIndex + 1) / cards.length) * 100;
+
+    const frontLabel = reversed ? "Definition" : "Term";
+    const backLabel = reversed ? "Term" : "Definition";
+    const frontText = reversed ? card.definition : card.term;
+    const backText = reversed ? card.term : card.definition;
 
     const go = useCallback(
         (delta: number) => {
@@ -58,16 +78,20 @@ const FlashcardViewer = ({ cards, gradient }: FlashcardViewerProps) => {
                         flipped && "[transform:rotateY(180deg)]",
                     )}
                 >
-                    {/* Front: term */}
+                    {/* Front */}
                     <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border bg-card p-8 text-center shadow-lg [backface-visibility:hidden]">
                         <span className="absolute left-6 top-5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
-                            Term
+                            {frontLabel}
                         </span>
-                        <p className="max-h-full overflow-y-auto text-2xl font-semibold sm:text-3xl">{card.term}</p>
-                        <span className="absolute bottom-5 text-xs text-muted-foreground">Click or press space to flip</span>
+                        <p className={cn("max-h-full overflow-y-auto whitespace-pre-wrap font-semibold", textSize(frontText))}>
+                            {frontText}
+                        </p>
+                        <span className="absolute bottom-5 text-xs text-muted-foreground">
+                            Click or press space to flip
+                        </span>
                     </div>
 
-                    {/* Back: definition */}
+                    {/* Back */}
                     <div
                         className={cn(
                             "absolute inset-0 flex flex-col items-center justify-center rounded-3xl bg-gradient-to-br p-8 text-center text-white shadow-lg [backface-visibility:hidden] [transform:rotateY(180deg)]",
@@ -75,9 +99,11 @@ const FlashcardViewer = ({ cards, gradient }: FlashcardViewerProps) => {
                         )}
                     >
                         <span className="absolute left-6 top-5 text-xs font-medium uppercase tracking-widest text-white/70">
-                            Definition
+                            {backLabel}
                         </span>
-                        <p className="max-h-full overflow-y-auto text-xl font-medium sm:text-2xl">{card.definition}</p>
+                        <p className={cn("max-h-full overflow-y-auto whitespace-pre-wrap font-medium", textSize(backText))}>
+                            {backText}
+                        </p>
                     </div>
                 </div>
             </div>

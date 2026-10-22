@@ -1,5 +1,5 @@
 import PageShell from "@/components/PageShell";
-import FlashcardViewer from "@/components/studysets/FlashcardViewer";
+import StudyPanel from "@/components/studysets/StudyPanel";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -133,7 +133,7 @@ const StudySetDetailPage = () => {
                         </div>
                     </section>
 
-                    {/* Flashcards */}
+                    {/* Study area */}
                     {set.cards.length === 0 ? (
                         <div className="rounded-3xl border border-dashed p-12 text-center">
                             <p className="mb-4 text-muted-foreground">This set doesn't have any cards yet.</p>
@@ -145,7 +145,7 @@ const StudySetDetailPage = () => {
                         </div>
                     ) : (
                         <>
-                            <FlashcardViewer cards={set.cards} gradient={gradient} />
+                            <StudyPanel cards={set.cards} gradient={gradient} />
 
                             <section className="space-y-4">
                                 <h2 className="text-xl font-semibold">Terms in this set</h2>
