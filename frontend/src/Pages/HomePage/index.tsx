@@ -5,21 +5,30 @@ import StudySetCard from "@/components/studysets/StudySetCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { gradientFor } from "@/lib/gradients";
+import { cn } from "@/lib/utils";
+import { useProgressOverview } from "@/hooks/useProgressOverview";
 import { useStudySets } from "@/hooks/useStudySets";
-import { ArrowRight, Layers, Library, Plus } from "lucide-react";
+import { ArrowRight, CalendarClock, CheckCircle2, Layers, Library, Plus, Trophy } from "lucide-react";
 import { useContext } from "react";
 import { Link } from "react-router-dom";
 
 const HomePage = () => {
     const authContext = useContext(AuthContext);
-    const { sets, loading } = useStudySets();
+    const { sets, loading: setsLoading } = useStudySets();
+    const { overview, loading: overviewLoading } = useProgressOverview();
 
+    const loading = setsLoading || overviewLoading;
     const totalCards = sets.reduce((sum, s) => sum + s.cardCount, 0);
+    const masteredTotal = overview?.sets.reduce((sum, s) => sum + s.masteredCount, 0) ?? 0;
+    const dueSets = overview?.sets.filter((s) => s.dueCount > 0) ?? [];
     const recent = sets.slice(0, 3);
 
     const stats = [
         { label: "Study sets", value: sets.length, icon: Library },
         { label: "Total terms", value: totalCards, icon: Layers },
+        { label: "Due today", value: overview?.totalDue ?? 0, icon: CalendarClock },
+        { label: "Mastered", value: masteredTotal, icon: Trophy },
     ];
 
     return (
@@ -41,11 +50,7 @@ const HomePage = () => {
                                 <Plus /> Create a set
                             </Link>
                         </Button>
-                        <Button
-                            asChild
-                            size="lg"
-                            className="border-0 bg-white/15 text-white hover:bg-white/25"
-                        >
+                        <Button asChild size="lg" className="border-0 bg-white/15 text-white hover:bg-white/25">
                             <Link to="/study-sets">My library</Link>
                         </Button>
                     </div>
@@ -53,11 +58,11 @@ const HomePage = () => {
             </section>
 
             {/* Stats */}
-            <section className="mt-8 grid grid-cols-2 gap-4">
+            <section className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
                 {stats.map(({ label, value, icon: Icon }) => (
                     <Card key={label}>
                         <CardContent className="flex items-center gap-4">
-                            <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                                 <Icon className="size-5" />
                             </div>
                             <div>
@@ -73,6 +78,39 @@ const HomePage = () => {
                 ))}
             </section>
 
+            {/* Due for review */}
+            {!loading && sets.length > 0 && (
+                <section className="mt-10 space-y-4">
+                    <h2 className="text-xl font-semibold">Due for review</h2>
+
+                    {dueSets.length === 0 ? (
+                        <div className="flex items-center gap-3 rounded-2xl border bg-card p-5 text-muted-foreground">
+                            <CheckCircle2 className="size-5 text-emerald-500" />
+                            You're all caught up. Nothing is due right now.
+                        </div>
+                    ) : (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                            {dueSets.map((s) => (
+                                <Link
+                                    key={s.setId}
+                                    to={`/study-sets/${s.setId}`}
+                                    className="group flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+                                >
+                                    <div className={cn("h-12 w-1.5 shrink-0 rounded-full bg-gradient-to-b", gradientFor(s.setId))} />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="truncate font-semibold">{s.title}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {s.dueCount} due · {s.masteredCount}/{s.total} mastered
+                                        </p>
+                                    </div>
+                                    <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            )}
+
             {/* Recent sets */}
             <section className="mt-10 space-y-4">
                 <div className="flex items-center justify-between">
@@ -86,7 +124,7 @@ const HomePage = () => {
                     )}
                 </div>
 
-                {loading ? (
+                {setsLoading ? (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {[0, 1, 2].map((i) => (
                             <Skeleton key={i} className="h-40 rounded-xl" />

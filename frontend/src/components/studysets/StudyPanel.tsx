@@ -2,15 +2,20 @@ import FlashcardViewer from "@/components/studysets/FlashcardViewer";
 import TypingPractice from "@/components/studysets/TypingPractice";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { FlashCard } from "@/types/studySet";
-import { ArrowLeftRight, Keyboard, Layers } from "lucide-react";
-import { useState } from "react";
+import { ProgressService } from "@/services/ProgressService";
+import type { FlashCard, SetProgress } from "@/types/studySet";
+import { assertOk, getErrorMessage } from "@/utils/apiUtils";
+import { ArrowLeftRight, CalendarClock, Keyboard, Layers } from "lucide-react";
+import { useMemo, useState } from "react";
 
 type Mode = "flashcards" | "typing";
 
 interface StudyPanelProps {
+    setId: string;
     cards: FlashCard[];
     gradient: string;
+    progress: SetProgress | null;
+    onProgressChange: () => void;
 }
 
 const MODES: Array<{ value: Mode; label: string; icon: typeof Layers }> = [
@@ -18,9 +23,36 @@ const MODES: Array<{ value: Mode; label: string; icon: typeof Layers }> = [
     { value: "typing", label: "Type answer", icon: Keyboard },
 ];
 
-const StudyPanel = ({ cards, gradient }: StudyPanelProps) => {
+const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: StudyPanelProps) => {
     const [mode, setMode] = useState<Mode>("flashcards");
     const [reversed, setReversed] = useState(false);
+    const [dueIds, setDueIds] = useState<Set<string> | null>(null);
+    const [saveError, setSaveError] = useState<string | null>(null);
+
+    // Cards without progress are new, which counts as due.
+    const dueCards = useMemo(() => {
+        const byCard = new Map(progress?.cards.map((p) => [p.cardId, p] as const) ?? []);
+        return cards.filter((card) => {
+            const p = byCard.get(card.id);
+            return !p || p.due;
+        });
+    }, [cards, progress]);
+
+    const studyCards = dueIds ? cards.filter((c) => dueIds.has(c.id)) : cards;
+
+    const toggleDueOnly = () => setDueIds((prev) => (prev ? null : new Set(dueCards.map((c) => c.id))));
+
+    const handleReview = async (card: FlashCard, correct: boolean) => {
+        try {
+            await assertOk(await ProgressService.reviewCard(setId, card.id, correct));
+            setSaveError(null);
+            onProgressChange();
+        } catch (e) {
+            setSaveError(getErrorMessage(e));
+        }
+    };
+
+    const scope = dueIds ? "due" : "all";
 
     return (
         <section className="space-y-5">
@@ -46,10 +78,17 @@ const StudyPanel = ({ cards, gradient }: StudyPanelProps) => {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <span className="hidden text-sm text-muted-foreground sm:inline">
-                        Showing {reversed ? "definitions" : "terms"} first
-                    </span>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                        type="button"
+                        variant={dueIds ? "default" : "outline"}
+                        onClick={toggleDueOnly}
+                        disabled={!progress || (!dueIds && dueCards.length === 0)}
+                        aria-pressed={Boolean(dueIds)}
+                    >
+                        <CalendarClock />
+                        {dueIds ? `Due cards (${studyCards.length})` : `Study due (${dueCards.length})`}
+                    </Button>
                     <Button
                         type="button"
                         variant="outline"
@@ -61,11 +100,38 @@ const StudyPanel = ({ cards, gradient }: StudyPanelProps) => {
                 </div>
             </div>
 
-            {mode === "flashcards" ? (
-                <FlashcardViewer cards={cards} gradient={gradient} reversed={reversed} />
+            <p className="text-sm text-muted-foreground">
+                Showing {reversed ? "definitions" : "terms"} first
+                {dueIds ? " · only cards that are due" : ""}
+            </p>
+
+            {saveError && (
+                <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    Couldn't save your progress: {saveError}
+                </p>
+            )}
+
+            {studyCards.length === 0 ? (
+                <div className="rounded-3xl border border-dashed p-12 text-center text-muted-foreground">
+                    Nothing to study here.
+                </div>
+            ) : mode === "flashcards" ? (
+                <FlashcardViewer
+                    key={scope}
+                    cards={studyCards}
+                    gradient={gradient}
+                    reversed={reversed}
+                    onReview={handleReview}
+                />
             ) : (
-                // key restarts the round when the direction changes
-                <TypingPractice key={String(reversed)} cards={cards} gradient={gradient} reversed={reversed} />
+                // key restarts the round when the direction or the card selection changes
+                <TypingPractice
+                    key={`${reversed}-${scope}`}
+                    cards={studyCards}
+                    gradient={gradient}
+                    reversed={reversed}
+                    onReview={handleReview}
+                />
             )}
         </section>
     );

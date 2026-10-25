@@ -10,6 +10,7 @@ interface TypingPracticeProps {
     cards: FlashCard[];
     gradient: string;
     reversed: boolean;
+    onReview?: (card: FlashCard, correct: boolean) => void;
 }
 
 type Result = "correct" | "incorrect";
@@ -28,7 +29,7 @@ function shuffled<T>(items: T[]): T[] {
     return copy;
 }
 
-const TypingPractice = ({ cards, gradient, reversed }: TypingPracticeProps) => {
+const TypingPractice = ({ cards, gradient, reversed, onReview }: TypingPracticeProps) => {
     const [queue, setQueue] = useState<FlashCard[]>(() => shuffled(cards));
     const [position, setPosition] = useState(0);
     const [outcomes, setOutcomes] = useState<Outcome[]>([]);
@@ -113,7 +114,9 @@ const TypingPractice = ({ cards, gradient, reversed }: TypingPracticeProps) => {
             return;
         }
 
-        setOutcomes((prev) => [...prev, { card, correct: result === "correct" }]);
+        const correct = result === "correct";
+        onReview?.(card, correct);
+        setOutcomes((prev) => [...prev, { card, correct }]);
         setPosition((p) => p + 1);
         setAnswer("");
         setResult(null);

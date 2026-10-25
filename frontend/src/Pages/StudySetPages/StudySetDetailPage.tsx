@@ -1,5 +1,7 @@
 import PageShell from "@/components/PageShell";
+import ProgressSummary from "@/components/studysets/ProgressSummary";
 import StudyPanel from "@/components/studysets/StudyPanel";
+import TermsList from "@/components/studysets/TermsList";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -16,11 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { gradientFor } from "@/lib/gradients";
 import { cn } from "@/lib/utils";
+import { useSetProgress } from "@/hooks/useSetProgress";
 import { StudySetService } from "@/services/StudySetService";
-import type { StudySetDetail } from "@/types/studySet";
+import type { CardProgress, StudySetDetail } from "@/types/studySet";
 import { assertOk, getErrorMessage, readJson } from "@/utils/apiUtils";
 import { ArrowLeft, Layers, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 const StudySetDetailPage = () => {
@@ -30,6 +33,16 @@ const StudySetDetailPage = () => {
     const [set, setSet] = useState<StudySetDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const { progress, loading: progressLoading, reload: reloadProgress } = useSetProgress(setId);
+
+    const progressByCard = useMemo(() => {
+        const map: Record<string, CardProgress> = {};
+        progress?.cards.forEach((p) => {
+            map[p.cardId] = p;
+        });
+        return map;
+    }, [progress]);
 
     useEffect(() => {
         if (!setId) return;
@@ -114,8 +127,8 @@ const StudySetDetailPage = () => {
                                         <AlertDialogHeader>
                                             <AlertDialogTitle>Delete this study set?</AlertDialogTitle>
                                             <AlertDialogDescription>
-                                                "{set.title}" and all of its cards will be permanently deleted. This
-                                                can't be undone.
+                                                "{set.title}", all of its cards and your progress on them will be
+                                                permanently deleted. This can't be undone.
                                             </AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
@@ -133,7 +146,6 @@ const StudySetDetailPage = () => {
                         </div>
                     </section>
 
-                    {/* Study area */}
                     {set.cards.length === 0 ? (
                         <div className="rounded-3xl border border-dashed p-12 text-center">
                             <p className="mb-4 text-muted-foreground">This set doesn't have any cards yet.</p>
@@ -145,25 +157,17 @@ const StudySetDetailPage = () => {
                         </div>
                     ) : (
                         <>
-                            <StudyPanel cards={set.cards} gradient={gradient} />
+                            <ProgressSummary progress={progress} loading={progressLoading} />
 
-                            <section className="space-y-4">
-                                <h2 className="text-xl font-semibold">Terms in this set</h2>
-                                <ul className="grid gap-3">
-                                    {set.cards.map((card, i) => (
-                                        <li
-                                            key={card.id}
-                                            className="grid gap-2 rounded-xl border bg-card p-4 sm:grid-cols-[2rem_1fr_1fr] sm:gap-6"
-                                        >
-                                            <span className="text-sm font-medium text-muted-foreground">{i + 1}</span>
-                                            <p className="whitespace-pre-wrap break-words font-medium">{card.term}</p>
-                                            <p className="whitespace-pre-wrap break-words text-muted-foreground">
-                                                {card.definition}
-                                            </p>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </section>
+                            <StudyPanel
+                                setId={set.id}
+                                cards={set.cards}
+                                gradient={gradient}
+                                progress={progress}
+                                onProgressChange={reloadProgress}
+                            />
+
+                            <TermsList cards={set.cards} progressByCard={progressByCard} />
                         </>
                     )}
                 </div>

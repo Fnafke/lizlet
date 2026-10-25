@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { FlashCard } from "@/types/studySet";
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, RotateCcw, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 interface FlashcardViewerProps {
     cards: FlashCard[];
     gradient: string;
     reversed?: boolean;
+    onReview?: (card: FlashCard, correct: boolean) => void;
 }
 
 // Long text (usually definitions) gets a smaller font so it fits on the card.
@@ -17,9 +18,10 @@ const textSize = (text: string) => {
     return "text-2xl sm:text-3xl";
 };
 
-const FlashcardViewer = ({ cards, gradient, reversed = false }: FlashcardViewerProps) => {
+const FlashcardViewer = ({ cards, gradient, reversed = false, onReview }: FlashcardViewerProps) => {
     const [index, setIndex] = useState(0);
     const [flipped, setFlipped] = useState(false);
+    const [rated, setRated] = useState<Record<string, boolean>>({});
     const [previousReversed, setPreviousReversed] = useState(reversed);
 
     // When the sides are swapped, show the front of the current card again.
@@ -31,6 +33,7 @@ const FlashcardViewer = ({ cards, gradient, reversed = false }: FlashcardViewerP
     const safeIndex = Math.min(index, cards.length - 1);
     const card = cards[safeIndex];
     const progress = ((safeIndex + 1) / cards.length) * 100;
+    const ratedValue: boolean | undefined = rated[card.id];
 
     const frontLabel = reversed ? "Definition" : "Term";
     const backLabel = reversed ? "Term" : "Definition";
@@ -48,6 +51,15 @@ const FlashcardViewer = ({ cards, gradient, reversed = false }: FlashcardViewerP
     const restart = () => {
         setFlipped(false);
         setIndex(0);
+        setRated({});
+    };
+
+    const rate = (correct: boolean) => {
+        onReview?.(card, correct);
+        setRated((prev) => ({ ...prev, [card.id]: correct }));
+        if (safeIndex < cards.length - 1) {
+            go(1);
+        }
     };
 
     useEffect(() => {
@@ -107,6 +119,34 @@ const FlashcardViewer = ({ cards, gradient, reversed = false }: FlashcardViewerP
                     </div>
                 </div>
             </div>
+
+            {/* Self-rating (fixed height so the layout doesn't jump) */}
+            {onReview && (
+                <div className="flex h-11 items-center justify-center gap-3">
+                    {flipped &&
+                        (ratedValue === undefined ? (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => rate(false)}
+                                    className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10 hover:text-amber-600 dark:text-amber-400"
+                                >
+                                    <X /> Still learning
+                                </Button>
+                                <Button
+                                    onClick={() => rate(true)}
+                                    className="bg-emerald-600 text-white hover:bg-emerald-600/90"
+                                >
+                                    <Check /> Got it
+                                </Button>
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                Saved as {ratedValue ? "known" : "still learning"}
+                            </p>
+                        ))}
+                </div>
+            )}
 
             <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                 <div
