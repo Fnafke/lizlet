@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fnafke.lizlet.dto.BulkCardsRequest;
 import com.fnafke.lizlet.dto.CardRequest;
 import com.fnafke.lizlet.dto.CardResponse;
 import com.fnafke.lizlet.dto.CreateStudySetRequest;
@@ -74,6 +75,13 @@ public class StudySetController {
     public CardResponse addCard(@AuthenticationPrincipal User user, @PathVariable UUID setId,
             @Valid @RequestBody CardRequest request) {
         return studySetService.addCard(user, setId, request);
+    }
+
+    @PostMapping("/{setId}/cards/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<CardResponse> addCards(@AuthenticationPrincipal User user, @PathVariable UUID setId,
+            @Valid @RequestBody BulkCardsRequest request) {
+        return studySetService.addCards(user, setId, request);
     }
 
     @PutMapping("/{setId}/cards/{cardId}")

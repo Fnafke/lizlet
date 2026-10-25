@@ -1,3 +1,4 @@
+// services/StudySetService.java
 package com.fnafke.lizlet.services;
 
 import java.util.List;
@@ -6,6 +7,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fnafke.lizlet.dto.BulkCardsRequest;
 import com.fnafke.lizlet.dto.CardRequest;
 import com.fnafke.lizlet.dto.CardResponse;
 import com.fnafke.lizlet.dto.CreateStudySetRequest;
@@ -69,6 +71,17 @@ public class StudySetService {
         set.addCard(new Card(request.term().trim(), request.definition().trim()));
         studySetRepository.saveAndFlush(set); // flush so the new card gets its id
         return CardResponse.from(set.getCards().get(set.getCards().size() - 1));
+    }
+
+    @Transactional
+    public List<CardResponse> addCards(User owner, UUID setId, BulkCardsRequest request) {
+        StudySet set = getOwnedSet(setId, owner);
+        int firstNew = set.getCards().size();
+        request.cards().forEach(c -> set.addCard(new Card(c.term().trim(), c.definition().trim())));
+        studySetRepository.saveAndFlush(set);
+        return set.getCards().subList(firstNew, set.getCards().size()).stream()
+                .map(CardResponse::from)
+                .toList();
     }
 
     @Transactional

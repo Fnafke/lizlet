@@ -76,3 +76,14 @@ export interface ProgressOverview {
     totalDue: number;
     sets: SetProgressSummary[];
 }
+
+export interface ParsedCard {
+    term: string;
+    definition: string;
+    needsReview: boolean;
+}
+
+export interface ImportPreview {
+    cards: ParsedCard[];
+    warnings: string[];
+}
