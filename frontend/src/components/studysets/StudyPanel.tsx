@@ -26,6 +26,7 @@ const MODES: Array<{ value: Mode; label: string; icon: typeof Layers }> = [
 const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: StudyPanelProps) => {
     const [mode, setMode] = useState<Mode>("flashcards");
     const [reversed, setReversed] = useState(false);
+    const [shuffleTyping, setShuffleTyping] = useState(true);
     const [dueIds, setDueIds] = useState<Set<string> | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -130,6 +131,8 @@ const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: Stud
                     cards={studyCards}
                     gradient={gradient}
                     reversed={reversed}
+                    shuffle={shuffleTyping}
+                    onShuffleChange={setShuffleTyping}
                     onReview={handleReview}
                 />
             )}

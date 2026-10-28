@@ -3,13 +3,15 @@ import { Input } from "@/components/ui/input";
 import { isCorrectAnswer } from "@/lib/answers";
 import { cn } from "@/lib/utils";
 import type { FlashCard } from "@/types/studySet";
-import { ArrowRight, CheckCircle2, RotateCcw, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, ListOrdered, RotateCcw, Shuffle, XCircle } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 interface TypingPracticeProps {
     cards: FlashCard[];
     gradient: string;
     reversed: boolean;
+    shuffle: boolean;
+    onShuffleChange: (shuffle: boolean) => void;
     onReview?: (card: FlashCard, correct: boolean) => void;
 }
 
@@ -29,8 +31,14 @@ function shuffled<T>(items: T[]): T[] {
     return copy;
 }
 
-const TypingPractice = ({ cards, gradient, reversed, onReview }: TypingPracticeProps) => {
-    const [queue, setQueue] = useState<FlashCard[]>(() => shuffled(cards));
+const ORDER_OPTIONS = [
+    { value: true, label: "Shuffle", description: "A random order every round", icon: Shuffle },
+    { value: false, label: "Keep order", description: "The same order as in the set", icon: ListOrdered },
+];
+
+const TypingPractice = ({ cards, gradient, reversed, shuffle, onShuffleChange, onReview }: TypingPracticeProps) => {
+    const [started, setStarted] = useState(false);
+    const [queue, setQueue] = useState<FlashCard[]>([]);
     const [position, setPosition] = useState(0);
     const [outcomes, setOutcomes] = useState<Outcome[]>([]);
     const [answer, setAnswer] = useState("");
@@ -42,12 +50,73 @@ const TypingPractice = ({ cards, gradient, reversed, onReview }: TypingPracticeP
     const expectedOf = (card: FlashCard) => (reversed ? card.term : card.definition);
 
     const startRound = (list: FlashCard[]) => {
-        setQueue(shuffled(list));
+        setQueue(shuffle ? shuffled(list) : list);
         setPosition(0);
         setOutcomes([]);
         setAnswer("");
         setResult(null);
+        setStarted(true);
     };
+
+    // ---------- Start screen ----------
+    if (!started) {
+        return (
+            <div className="overflow-hidden rounded-3xl border bg-card shadow-lg">
+                <div className={cn("h-2 bg-gradient-to-r", gradient)} />
+                <div className="space-y-6 p-6 sm:p-8">
+                    <div className="space-y-1 text-center">
+                        <h3 className="text-xl font-semibold">Type the answers</h3>
+                        <p className="text-sm text-muted-foreground">
+                            {cards.length} {cards.length === 1 ? "card" : "cards"} · you'll see the{" "}
+                            {promptLabel.toLowerCase()} and type the {answerLabel.toLowerCase()}
+                        </p>
+                    </div>
+
+                    <div role="radiogroup" aria-label="Card order" className="grid gap-3 sm:grid-cols-2">
+                        {ORDER_OPTIONS.map(({ value, label, description, icon: Icon }) => {
+                            const selected = shuffle === value;
+                            return (
+                                <button
+                                    key={label}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={selected}
+                                    onClick={() => onShuffleChange(value)}
+                                    className={cn(
+                                        "flex items-start gap-3 rounded-2xl border p-4 text-left transition-all",
+                                        selected
+                                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                            : "hover:bg-muted/50",
+                                    )}
+                                >
+                                    <span
+                                        className={cn(
+                                            "flex size-9 shrink-0 items-center justify-center rounded-lg",
+                                            selected
+                                                ? "bg-primary text-primary-foreground"
+                                                : "bg-muted text-muted-foreground",
+                                        )}
+                                    >
+                                        <Icon className="size-4" />
+                                    </span>
+                                    <span>
+                                        <span className="block font-medium">{label}</span>
+                                        <span className="block text-sm text-muted-foreground">{description}</span>
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div className="flex justify-center">
+                        <Button size="lg" autoFocus onClick={() => startRound(cards)}>
+                            Start <ArrowRight />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const finished = position >= queue.length;
 
@@ -95,6 +164,9 @@ const TypingPractice = ({ cards, gradient, reversed, onReview }: TypingPracticeP
                     <Button variant="outline" onClick={() => startRound(cards)}>
                         Practice all again
                     </Button>
+                    <Button variant="ghost" onClick={() => setStarted(false)}>
+                        Change options
+                    </Button>
                 </div>
             </div>
         );
@@ -128,6 +200,10 @@ const TypingPractice = ({ cards, gradient, reversed, onReview }: TypingPracticeP
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span className="tabular-nums">
                         {position + 1} / {queue.length}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-xs">
+                        {shuffle ? <Shuffle className="size-3.5" /> : <ListOrdered className="size-3.5" />}
+                        {shuffle ? "Shuffled" : "In order"}
                     </span>
                     <span className="tabular-nums">{outcomes.filter((o) => o.correct).length} correct</span>
                 </div>
