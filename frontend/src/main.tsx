@@ -14,6 +14,7 @@ import { AuthProvider } from './components/context/AuthProvider'
 import StudySetsPage from './Pages/StudySetPages/StudySetsPage'
 import StudySetFormPage from './Pages/StudySetPages/StudySetFormPage'
 import StudySetDetailPage from './Pages/StudySetPages/StudySetDetailPage'
+import AccountPage from './Pages/AccountPage/AccountPage'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -26,6 +27,7 @@ const router = createBrowserRouter(
         <Route path="/study-sets/new" element={<StudySetFormPage />} />
         <Route path="/study-sets/:setId" element={<StudySetDetailPage />} />
         <Route path="/study-sets/:setId/edit" element={<StudySetFormPage />} />
+        <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </>

@@ -41,8 +41,22 @@ const fetchOverview = async (): Promise<Response> => {
     }
 };
 
+const fetchStats = async (): Promise<Response> => {
+    try {
+        const response = await fetch(`${BASE_URL}/progress/stats`, {
+            method: "GET",
+            credentials: "include",
+        });
+        return response;
+    } catch (error) {
+        console.error("Error fetching statistics:", error);
+        throw error;
+    }
+};
+
 export const ProgressService = {
     reviewCard,
     fetchSetProgress,
     fetchOverview,
+    fetchStats,
 };

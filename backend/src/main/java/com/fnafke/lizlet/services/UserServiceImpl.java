@@ -1,12 +1,16 @@
 package com.fnafke.lizlet.services;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.fnafke.lizlet.dto.AuthenticationResponse;
+import com.fnafke.lizlet.models.exceptions.AccountException;
 import com.fnafke.lizlet.models.Role;
 import com.fnafke.lizlet.models.User;
 import com.fnafke.lizlet.models.exceptions.NotFoundException;
@@ -96,4 +100,43 @@ public class UserServiceImpl implements UserService {
                 "Successfully authenticated! Welcome " + user.getUsername());
     }
 
+    @Override
+    public User changeUsername(User user, String newUsername) {
+        String username = newUsername.trim();
+
+        if (username.equals(user.getUsername())) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "That is already your username.");
+        }
+        // Exact match, like registration. For case-insensitive uniqueness, add
+        // existsByUsernameIgnoreCase to the repository and use it here and in
+        // registration.
+        if (existsByUsername(username)) {
+            throw new AccountException(HttpStatus.CONFLICT, "That username is already taken.");
+        }
+
+        user.setUsername(username);
+        user.setUpdatedAt(LocalDate.now());
+        try {
+            return userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            // Someone took the name between the check above and the save (unique
+            // constraint).
+            throw new AccountException(HttpStatus.CONFLICT, "That username is already taken.");
+        }
+    }
+
+    @Override
+    public void changePassword(User user, String currentPassword, String newPassword) {
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new AccountException(HttpStatus.BAD_REQUEST, "Your current password is incorrect.");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPassword())) {
+            throw new AccountException(HttpStatus.BAD_REQUEST,
+                    "Your new password must be different from the current one.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDate.now());
+        userRepository.save(user);
+    }
 }

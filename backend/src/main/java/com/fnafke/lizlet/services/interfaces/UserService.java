@@ -66,4 +66,22 @@ public interface UserService {
      * @return an AuthenticationResponse containing the authentication result
      */
     public AuthenticationResponse authenticateUser(String email, String password);
+
+    /**
+     * Change a user's username.
+     *
+     * @param user        the user whose username to change
+     * @param newUsername the new username for the user
+     * @return the updated user with the new username
+     */
+    User changeUsername(User user, String newUsername);
+
+    /**
+     * Change a user's password.
+     *
+     * @param user            the user whose password to change
+     * @param currentPassword the current password of the user
+     * @param newPassword     the new password for the user
+     */
+    void changePassword(User user, String currentPassword, String newPassword);
 }

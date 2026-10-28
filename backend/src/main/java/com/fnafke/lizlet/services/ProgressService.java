@@ -1,19 +1,24 @@
 package com.fnafke.lizlet.services;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fnafke.lizlet.dto.CardProgressResponse;
+import com.fnafke.lizlet.dto.DailyReviewCount;
 import com.fnafke.lizlet.dto.ProgressOverviewResponse;
 import com.fnafke.lizlet.dto.SetProgressResponse;
 import com.fnafke.lizlet.dto.SetProgressSummary;
+import com.fnafke.lizlet.dto.UserStatsResponse;
 import com.fnafke.lizlet.models.exceptions.ResourceNotFoundException;
 import com.fnafke.lizlet.models.Card;
 import com.fnafke.lizlet.models.CardProgress;
@@ -77,6 +82,61 @@ public class ProgressService {
 
         int totalDue = summaries.stream().mapToInt(SetProgressSummary::dueCount).sum();
         return new ProgressOverviewResponse(totalDue, summaries);
+    }
+
+    /** Statistics across all of the user's sets, for the account page. */
+    public UserStatsResponse getStats(User user) {
+        LocalDate today = LocalDate.now();
+
+        List<StudySet> sets = studySetRepository.findAllByOwner_IdOrderByUpdatedAtDesc(user.getId());
+        int totalCards = sets.stream().mapToInt(set -> set.getCards().size()).sum();
+        List<CardProgress> progress = cardProgressRepository.findAllByUserId(user.getId());
+
+        int[] perBox = new int[CardProgress.MAX_BOX + 1]; // index = box (1 to 5)
+        int[] upcoming = new int[7]; // index 0 = today (including overdue), 1..6 = the next days
+        int mastered = 0;
+        int correct = 0;
+        int incorrect = 0;
+        LocalDate lastStudied = null;
+
+        for (CardProgress p : progress) {
+            perBox[p.getBox()]++;
+            if (p.isMastered()) {
+                mastered++;
+            }
+            correct += p.getCorrectCount();
+            incorrect += p.getIncorrectCount();
+
+            if (p.getLastReviewedAt() != null
+                    && (lastStudied == null || p.getLastReviewedAt().isAfter(lastStudied))) {
+                lastStudied = p.getLastReviewedAt();
+            }
+
+            if (p.isDue(today)) {
+                upcoming[0]++;
+            } else {
+                long days = ChronoUnit.DAYS.between(today, p.getNextReviewAt());
+                if (days >= 1 && days <= 6) {
+                    upcoming[(int) days]++;
+                }
+            }
+        }
+
+        int newCards = Math.max(0, totalCards - progress.size());
+        upcoming[0] += newCards; // new cards are due too
+
+        List<Integer> cardsPerBox = new ArrayList<>();
+        cardsPerBox.add(newCards);
+        for (int box = 1; box <= CardProgress.MAX_BOX; box++) {
+            cardsPerBox.add(perBox[box]);
+        }
+
+        List<DailyReviewCount> forecast = IntStream.range(0, 7)
+                .mapToObj(i -> new DailyReviewCount(today.plusDays(i), upcoming[i]))
+                .toList();
+
+        return new UserStatsResponse(sets.size(), totalCards, newCards, progress.size() - mastered, mastered,
+                upcoming[0], correct + incorrect, correct, lastStudied, cardsPerBox, forecast);
     }
 
     // ---------- Helpers ----------

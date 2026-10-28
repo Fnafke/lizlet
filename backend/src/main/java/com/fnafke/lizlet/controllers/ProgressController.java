@@ -14,6 +14,7 @@ import com.fnafke.lizlet.dto.CardProgressResponse;
 import com.fnafke.lizlet.dto.ProgressOverviewResponse;
 import com.fnafke.lizlet.dto.ReviewRequest;
 import com.fnafke.lizlet.dto.SetProgressResponse;
+import com.fnafke.lizlet.dto.UserStatsResponse;
 import com.fnafke.lizlet.models.User;
 import com.fnafke.lizlet.services.ProgressService;
 
@@ -43,5 +44,10 @@ public class ProgressController {
     @GetMapping("/progress/overview")
     public ProgressOverviewResponse getOverview(@AuthenticationPrincipal User user) {
         return progressService.getOverview(user);
+    }
+
+    @GetMapping("/progress/stats")
+    public UserStatsResponse getStats(@AuthenticationPrincipal User user) {
+        return progressService.getStats(user);
     }
 }
