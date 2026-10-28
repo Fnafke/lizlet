@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react"
 
-type Theme = "dark" | "light" | "system"
+export type Theme = "dark" | "light" | "pink" | "hot-pink" | "dark-pink" | "system"
 
 type ThemeProviderProps = {
   children: React.ReactNode
@@ -18,6 +18,19 @@ const initialState: ThemeProviderState = {
   setTheme: () => null,
 }
 
+// The classes each theme puts on <html>. "dark-pink" is a dark theme, so it also gets "dark";
+// that keeps every `dark:` style in the components working.
+const THEME_CLASSES: Record<Exclude<Theme, "system">, string[]> = {
+  light: ["light"],
+  dark: ["dark"],
+  pink: ["pink"],
+  "hot-pink": ["hot-pink"],
+  "dark-pink": ["dark", "dark-pink"],
+}
+
+const ALL_CLASSES = ["light", "dark", "pink", "hot-pink", "dark-pink"]
+const DARK_THEMES: Theme[] = ["dark", "dark-pink"]
+
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
 export function ThemeProvider({
@@ -33,7 +46,7 @@ export function ThemeProvider({
   useEffect(() => {
     const root = window.document.documentElement
 
-    root.classList.remove("light", "dark")
+    root.classList.remove(...ALL_CLASSES)
 
     if (theme === "system") {
       const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
@@ -42,10 +55,14 @@ export function ThemeProvider({
         : "light"
 
       root.classList.add(systemTheme)
+      root.style.colorScheme = systemTheme
       return
     }
 
-    root.classList.add(theme)
+    // Falls back to light if an old or unknown value is stored.
+    const classes = THEME_CLASSES[theme] ?? THEME_CLASSES.light
+    root.classList.add(...classes)
+    root.style.colorScheme = DARK_THEMES.includes(theme) ? "dark" : "light"
   }, [theme])
 
   const value = {

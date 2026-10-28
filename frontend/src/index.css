@@ -117,6 +117,131 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
+/*
+ * Pink themes. Keep all three below :root and .dark: they have the same specificity,
+ * so the later rule wins. "dark-pink" is applied together with the "dark" class.
+ */
+
+/* Pink: soft and light */
+.pink {
+    --background: oklch(0.985 0.012 350);
+    --foreground: oklch(0.25 0.05 345);
+    --card: oklch(0.995 0.006 350);
+    --card-foreground: oklch(0.25 0.05 345);
+    --popover: oklch(0.998 0.004 350);
+    --popover-foreground: oklch(0.25 0.05 345);
+    --primary: oklch(0.58 0.22 352);
+    --primary-foreground: oklch(0.985 0.01 350);
+    --secondary: oklch(0.955 0.03 350);
+    --secondary-foreground: oklch(0.35 0.1 350);
+    --muted: oklch(0.96 0.02 350);
+    --muted-foreground: oklch(0.5 0.05 350);
+    --accent: oklch(0.94 0.045 350);
+    --accent-foreground: oklch(0.3 0.09 350);
+    --destructive: oklch(0.58 0.23 28);
+    --border: oklch(0.91 0.03 350);
+    --input: oklch(0.9 0.035 350);
+    --ring: oklch(0.72 0.14 352);
+    --chart-1: oklch(0.78 0.13 352);
+    --chart-2: oklch(0.68 0.2 352);
+    --chart-3: oklch(0.58 0.22 352);
+    --chart-4: oklch(0.48 0.19 350);
+    --chart-5: oklch(0.38 0.14 348);
+    --radius: 0.75rem;
+    --sidebar: oklch(0.965 0.025 350);
+    --sidebar-foreground: oklch(0.25 0.05 345);
+    --sidebar-primary: oklch(0.58 0.22 352);
+    --sidebar-primary-foreground: oklch(0.985 0.01 350);
+    --sidebar-accent: oklch(0.93 0.05 350);
+    --sidebar-accent-foreground: oklch(0.3 0.09 350);
+    --sidebar-border: oklch(0.9 0.035 350);
+    --sidebar-ring: oklch(0.72 0.14 352);
+
+    --glow-a: oklch(0.93 0.07 350 / 0.7);
+    --glow-b: oklch(0.94 0.06 10 / 0.6);
+    --selection: oklch(0.85 0.1 352 / 0.6);
+}
+
+/* Hot pink: a clearly pink page, vivid primary */
+.hot-pink {
+    --background: oklch(0.95 0.05 352);
+    --foreground: oklch(0.26 0.09 350);
+    --card: oklch(0.985 0.02 352);
+    --card-foreground: oklch(0.26 0.09 350);
+    --popover: oklch(0.985 0.02 352);
+    --popover-foreground: oklch(0.26 0.09 350);
+    --primary: oklch(0.59 0.25 354);
+    --primary-foreground: oklch(0.99 0.01 350);
+    --secondary: oklch(0.91 0.07 352);
+    --secondary-foreground: oklch(0.32 0.12 350);
+    --muted: oklch(0.93 0.05 352);
+    --muted-foreground: oklch(0.48 0.09 350);
+    --accent: oklch(0.89 0.09 352);
+    --accent-foreground: oklch(0.28 0.12 350);
+    --destructive: oklch(0.56 0.24 27);
+    --border: oklch(0.86 0.07 352);
+    --input: oklch(0.84 0.08 352);
+    --ring: oklch(0.7 0.19 354);
+    --chart-1: oklch(0.8 0.14 352);
+    --chart-2: oklch(0.7 0.22 354);
+    --chart-3: oklch(0.59 0.25 354);
+    --chart-4: oklch(0.5 0.22 350);
+    --chart-5: oklch(0.4 0.16 348);
+    --radius: 0.875rem;
+    --sidebar: oklch(0.93 0.06 352);
+    --sidebar-foreground: oklch(0.26 0.09 350);
+    --sidebar-primary: oklch(0.59 0.25 354);
+    --sidebar-primary-foreground: oklch(0.99 0.01 350);
+    --sidebar-accent: oklch(0.88 0.09 352);
+    --sidebar-accent-foreground: oklch(0.28 0.12 350);
+    --sidebar-border: oklch(0.85 0.08 352);
+    --sidebar-ring: oklch(0.7 0.19 354);
+
+    --glow-a: oklch(0.88 0.13 352 / 0.75);
+    --glow-b: oklch(0.9 0.11 12 / 0.65);
+    --selection: oklch(0.8 0.15 354 / 0.55);
+}
+
+/* Dark pink: deep plum with bright pink accents (also gets the "dark" class) */
+.dark-pink {
+    --background: oklch(0.17 0.035 340);
+    --foreground: oklch(0.96 0.015 350);
+    --card: oklch(0.22 0.05 342);
+    --card-foreground: oklch(0.96 0.015 350);
+    --popover: oklch(0.22 0.05 342);
+    --popover-foreground: oklch(0.96 0.015 350);
+    --primary: oklch(0.72 0.2 352);
+    --primary-foreground: oklch(0.2 0.05 345);
+    --secondary: oklch(0.29 0.07 345);
+    --secondary-foreground: oklch(0.96 0.015 350);
+    --muted: oklch(0.27 0.055 343);
+    --muted-foreground: oklch(0.74 0.06 350);
+    --accent: oklch(0.32 0.09 348);
+    --accent-foreground: oklch(0.97 0.02 350);
+    --destructive: oklch(0.7 0.19 25);
+    --border: oklch(0.75 0.12 350 / 16%);
+    --input: oklch(0.75 0.12 350 / 22%);
+    --ring: oklch(0.68 0.18 352);
+    --chart-1: oklch(0.82 0.12 352);
+    --chart-2: oklch(0.74 0.18 352);
+    --chart-3: oklch(0.66 0.22 354);
+    --chart-4: oklch(0.58 0.22 350);
+    --chart-5: oklch(0.5 0.18 346);
+    --radius: 0.75rem;
+    --sidebar: oklch(0.2 0.045 342);
+    --sidebar-foreground: oklch(0.96 0.015 350);
+    --sidebar-primary: oklch(0.72 0.2 352);
+    --sidebar-primary-foreground: oklch(0.2 0.05 345);
+    --sidebar-accent: oklch(0.3 0.08 346);
+    --sidebar-accent-foreground: oklch(0.97 0.02 350);
+    --sidebar-border: oklch(0.75 0.12 350 / 14%);
+    --sidebar-ring: oklch(0.68 0.18 352);
+
+    --glow-a: oklch(0.35 0.14 352 / 0.45);
+    --glow-b: oklch(0.3 0.12 330 / 0.4);
+    --selection: oklch(0.55 0.18 352 / 0.5);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -127,6 +252,18 @@
   html {
     @apply font-sans;
     }
+}
+
+/* Extras shared by the pink themes: a soft glow in the background and pink text selection. */
+:is(.pink, .hot-pink, .dark-pink) :is(body, [data-slot="sidebar-inset"]) {
+    background-image:
+        radial-gradient(60rem 40rem at 100% -10%, var(--glow-a), transparent 60%),
+        radial-gradient(50rem 35rem at -10% 110%, var(--glow-b), transparent 55%);
+    background-attachment: fixed;
+}
+
+:is(.pink, .hot-pink, .dark-pink) ::selection {
+    background: var(--selection);
 }
 
 @keyframes modal-backdrop {
