@@ -1,5 +1,15 @@
 import FlashcardViewer from "@/components/studysets/FlashcardViewer";
 import TypingPractice from "@/components/studysets/TypingPractice";
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ProgressService } from "@/services/ProgressService";
@@ -30,6 +40,11 @@ const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: Stud
     const [dueIds, setDueIds] = useState<Set<string> | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
 
+    // True while a typing round is in progress; reported by TypingPractice.
+    const [typingActive, setTypingActive] = useState(false);
+    // A change waiting for the user's confirmation in the dialog.
+    const [pendingChange, setPendingChange] = useState<(() => void) | null>(null);
+
     // Cards without progress are new, which counts as due.
     const dueCards = useMemo(() => {
         const byCard = new Map(progress?.cards.map((p) => [p.cardId, p] as const) ?? []);
@@ -40,6 +55,21 @@ const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: Stud
     }, [cards, progress]);
 
     const studyCards = dueIds ? cards.filter((c) => dueIds.has(c.id)) : cards;
+
+    // Anything that would throw away a typing round in progress goes through here.
+    const requestChange = (change: () => void) => {
+        if (mode === "typing" && typingActive) {
+            setPendingChange(() => change);
+        } else {
+            change();
+        }
+    };
+
+    const handleModeChange = (value: Mode) => {
+        if (value !== mode) {
+            requestChange(() => setMode(value));
+        }
+    };
 
     const toggleDueOnly = () => setDueIds((prev) => (prev ? null : new Set(dueCards.map((c) => c.id))));
 
@@ -65,7 +95,7 @@ const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: Stud
                             type="button"
                             role="tab"
                             aria-selected={mode === value}
-                            onClick={() => setMode(value)}
+                            onClick={() => handleModeChange(value)}
                             className={cn(
                                 "flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-all",
                                 mode === value
@@ -83,7 +113,7 @@ const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: Stud
                     <Button
                         type="button"
                         variant={dueIds ? "default" : "outline"}
-                        onClick={toggleDueOnly}
+                        onClick={() => requestChange(toggleDueOnly)}
                         disabled={!progress || (!dueIds && dueCards.length === 0)}
                         aria-pressed={Boolean(dueIds)}
                     >
@@ -93,7 +123,7 @@ const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: Stud
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setReversed((r) => !r)}
+                        onClick={() => requestChange(() => setReversed((r) => !r))}
                         aria-pressed={reversed}
                     >
                         <ArrowLeftRight /> Swap sides
@@ -134,8 +164,38 @@ const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: Stud
                     shuffle={shuffleTyping}
                     onShuffleChange={setShuffleTyping}
                     onReview={handleReview}
+                    onActiveChange={setTypingActive}
                 />
             )}
+
+            <AlertDialog
+                open={pendingChange !== null}
+                onOpenChange={(open) => {
+                    if (!open) setPendingChange(null);
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Leave this typing session?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            You're in the middle of a round. If you continue, you'll lose your place in it and will have to start over. Cards
+                            you've already answered are saved to your progress.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Keep practicing</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={() => {
+                                pendingChange?.();
+                                setPendingChange(null);
+                            }}
+                            className="bg-destructive text-white hover:bg-destructive/90"
+                        >
+                            Leave session
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </section>
     );
 };

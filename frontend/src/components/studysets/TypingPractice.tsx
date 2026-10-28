@@ -1,10 +1,11 @@
+import SpecialCharacters from "@/components/studysets/SpecialCharacters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { isCorrectAnswer } from "@/lib/answers";
 import { cn } from "@/lib/utils";
 import type { FlashCard } from "@/types/studySet";
 import { ArrowRight, CheckCircle2, ListOrdered, RotateCcw, Shuffle, XCircle } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 interface TypingPracticeProps {
     cards: FlashCard[];
@@ -13,6 +14,7 @@ interface TypingPracticeProps {
     shuffle: boolean;
     onShuffleChange: (shuffle: boolean) => void;
     onReview?: (card: FlashCard, correct: boolean) => void;
+    onActiveChange?: (active: boolean) => void;
 }
 
 type Result = "correct" | "incorrect";
@@ -36,13 +38,31 @@ const ORDER_OPTIONS = [
     { value: false, label: "Keep order", description: "The same order as in the set", icon: ListOrdered },
 ];
 
-const TypingPractice = ({ cards, gradient, reversed, shuffle, onShuffleChange, onReview }: TypingPracticeProps) => {
+const TypingPractice = ({
+    cards,
+    gradient,
+    reversed,
+    shuffle,
+    onShuffleChange,
+    onReview,
+    onActiveChange,
+}: TypingPracticeProps) => {
     const [started, setStarted] = useState(false);
     const [queue, setQueue] = useState<FlashCard[]>([]);
     const [position, setPosition] = useState(0);
     const [outcomes, setOutcomes] = useState<Outcome[]>([]);
     const [answer, setAnswer] = useState("");
     const [result, setResult] = useState<Result | null>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const finished = started && position >= queue.length;
+    const active = started && !finished;
+
+    // Lets the parent know a round is in progress (so it can warn before the round is thrown away).
+    useEffect(() => {
+        onActiveChange?.(active);
+        return () => onActiveChange?.(false);
+    }, [active, onActiveChange]);
 
     const promptLabel = reversed ? "Definition" : "Term";
     const answerLabel = reversed ? "Term" : "Definition";
@@ -56,6 +76,22 @@ const TypingPractice = ({ cards, gradient, reversed, shuffle, onShuffleChange, o
         setAnswer("");
         setResult(null);
         setStarted(true);
+    };
+
+    // Inserts a character at the cursor (or replaces the selection) and puts the cursor behind it.
+    const insertCharacter = (character: string) => {
+        const input = inputRef.current;
+        if (!input || result !== null) return;
+
+        const start = input.selectionStart ?? answer.length;
+        const end = input.selectionEnd ?? answer.length;
+        setAnswer(answer.slice(0, start) + character + answer.slice(end));
+
+        requestAnimationFrame(() => {
+            input.focus();
+            const caret = start + character.length;
+            input.setSelectionRange(caret, caret);
+        });
     };
 
     // ---------- Start screen ----------
@@ -117,8 +153,6 @@ const TypingPractice = ({ cards, gradient, reversed, shuffle, onShuffleChange, o
             </div>
         );
     }
-
-    const finished = position >= queue.length;
 
     // ---------- Summary ----------
     if (finished) {
@@ -227,26 +261,31 @@ const TypingPractice = ({ cards, gradient, reversed, shuffle, onShuffleChange, o
                         </p>
                     </div>
 
-                    <div className="space-y-2">
-                        <label
-                            htmlFor="typing-answer"
-                            className="text-xs font-medium uppercase tracking-widest text-muted-foreground"
-                        >
-                            Type the {answerLabel.toLowerCase()}
-                        </label>
-                        <Input
-                            key={position}
-                            id="typing-answer"
-                            autoFocus
-                            autoComplete="off"
-                            autoCapitalize="off"
-                            spellCheck={false}
-                            value={answer}
-                            readOnly={result !== null}
-                            onChange={(e) => setAnswer(e.target.value)}
-                            placeholder={`Your ${answerLabel.toLowerCase()}...`}
-                            className="h-12 text-base"
-                        />
+                    <div className="space-y-3">
+                        <div className="space-y-2">
+                            <label
+                                htmlFor="typing-answer"
+                                className="text-xs font-medium uppercase tracking-widest text-muted-foreground"
+                            >
+                                Type the {answerLabel.toLowerCase()}
+                            </label>
+                            <Input
+                                key={position}
+                                ref={inputRef}
+                                id="typing-answer"
+                                autoFocus
+                                autoComplete="off"
+                                autoCapitalize="off"
+                                spellCheck={false}
+                                value={answer}
+                                readOnly={result !== null}
+                                onChange={(e) => setAnswer(e.target.value)}
+                                placeholder={`Your ${answerLabel.toLowerCase()}...`}
+                                className="h-12 text-base"
+                            />
+                        </div>
+
+                        {result === null && <SpecialCharacters onInsert={insertCharacter} />}
                     </div>
 
                     {result && (
