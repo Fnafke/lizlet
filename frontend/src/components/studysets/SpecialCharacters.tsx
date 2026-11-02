@@ -15,7 +15,7 @@ const CHARACTERS = [
 ];
 
 const SpecialCharacters = ({ onInsert, disabled = false }: SpecialCharactersProps) => {
-    const [upper, setUpper] = useState(false);
+    const [upper, setUpper] = useState(true);
 
     const insert = (character: string) => {
         onInsert(upper ? character.toLocaleUpperCase() : character);

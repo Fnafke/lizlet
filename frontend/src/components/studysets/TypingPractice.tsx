@@ -1,6 +1,8 @@
 import SpecialCharacters from "@/components/studysets/SpecialCharacters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { useLocalStorageState } from "@/hooks/useLocalStorageState";
 import { isCorrectAnswer } from "@/lib/answers";
 import { cn } from "@/lib/utils";
 import type { FlashCard } from "@/types/studySet";
@@ -33,6 +35,14 @@ function shuffled<T>(items: T[]): T[] {
     return copy;
 }
 
+const AUTO_CAPS_STORAGE_KEY = "lizlet-typing-auto-caps";
+
+// Uppercases the first character (by code point, so letters outside the BMP survive).
+function capitalizeFirst(value: string): string {
+    const [first, ...rest] = Array.from(value);
+    return first ? first.toLocaleUpperCase() + rest.join("") : value;
+}
+
 const ORDER_OPTIONS = [
     { value: true, label: "Shuffle", description: "A random order every round", icon: Shuffle },
     { value: false, label: "Keep order", description: "The same order as in the set", icon: ListOrdered },
@@ -53,6 +63,7 @@ const TypingPractice = ({
     const [outcomes, setOutcomes] = useState<Outcome[]>([]);
     const [answer, setAnswer] = useState("");
     const [result, setResult] = useState<Result | null>(null);
+    const [autoCaps, setAutoCaps] = useLocalStorageState(AUTO_CAPS_STORAGE_KEY, false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const finished = started && position >= queue.length;
@@ -78,6 +89,11 @@ const TypingPractice = ({
         setStarted(true);
     };
 
+    // Stores the typed answer; with auto-capslock on, the first character of an empty answer is uppercased.
+    const updateAnswer = (value: string) => {
+        setAnswer(autoCaps && answer === "" && value !== "" ? capitalizeFirst(value) : value);
+    };
+
     // Inserts a character at the cursor (or replaces the selection) and puts the cursor behind it.
     const insertCharacter = (character: string) => {
         const input = inputRef.current;
@@ -85,7 +101,7 @@ const TypingPractice = ({
 
         const start = input.selectionStart ?? answer.length;
         const end = input.selectionEnd ?? answer.length;
-        setAnswer(answer.slice(0, start) + character + answer.slice(end));
+        updateAnswer(answer.slice(0, start) + character + answer.slice(end));
 
         requestAnimationFrame(() => {
             input.focus();
@@ -263,12 +279,32 @@ const TypingPractice = ({
 
                     <div className="space-y-3">
                         <div className="space-y-2">
-                            <label
-                                htmlFor="typing-answer"
-                                className="text-xs font-medium uppercase tracking-widest text-muted-foreground"
-                            >
-                                Type the {answerLabel.toLowerCase()}
-                            </label>
+                            <div className="flex items-center justify-between gap-3">
+                                <label
+                                    htmlFor="typing-answer"
+                                    className="text-xs font-medium uppercase tracking-widest text-muted-foreground"
+                                >
+                                    Type the {answerLabel.toLowerCase()}
+                                </label>
+                                <div className="flex items-center gap-2">
+                                    <label
+                                        htmlFor="typing-auto-caps"
+                                        className="cursor-pointer text-xs text-muted-foreground"
+                                    >
+                                        Auto-capslock
+                                    </label>
+                                    <Switch
+                                        id="typing-auto-caps"
+                                        checked={autoCaps}
+                                        onCheckedChange={(checked) => {
+                                            setAutoCaps(checked);
+                                            inputRef.current?.focus();
+                                        }}
+                                        // Keeps the focus (and the cursor) in the answer field when toggled with the mouse.
+                                        onMouseDown={(e) => e.preventDefault()}
+                                    />
+                                </div>
+                            </div>
                             <Input
                                 key={position}
                                 ref={inputRef}
@@ -279,7 +315,7 @@ const TypingPractice = ({
                                 spellCheck={false}
                                 value={answer}
                                 readOnly={result !== null}
-                                onChange={(e) => setAnswer(e.target.value)}
+                                onChange={(e) => updateAnswer(e.target.value)}
                                 placeholder={`Your ${answerLabel.toLowerCase()}...`}
                                 className="h-12 text-base"
                             />
