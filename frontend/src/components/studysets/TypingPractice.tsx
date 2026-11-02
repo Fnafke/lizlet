@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useLocalStorageState } from "@/hooks/useLocalStorageState";
-import { isCorrectAnswer } from "@/lib/answers";
+import { isCorrectAnswer, normalizeAnswer } from "@/lib/answers";
 import { cn } from "@/lib/utils";
 import type { FlashCard } from "@/types/studySet";
 import { ArrowRight, CheckCircle2, ListOrdered, RotateCcw, Shuffle, XCircle } from "lucide-react";
@@ -227,12 +227,20 @@ const TypingPractice = ({
     const expected = expectedOf(card);
     const progress = (position / queue.length) * 100;
 
+    // Cards in the whole set that show the same prompt as this one (this card included). Typing the answer of
+    // any of them counts as correct, e.g. two terms with the same definition when the sides are swapped.
+    const sharedPromptCards = cards.filter(
+        (c) => normalizeAnswer(promptOf(c)) === normalizeAnswer(promptOf(card)),
+    );
+    const matchesAnyAnswer = (input: string) =>
+        isCorrectAnswer(input, expected) || sharedPromptCards.some((c) => isCorrectAnswer(input, expectedOf(c)));
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
         if (result === null) {
             if (!answer.trim()) return;
-            setResult(isCorrectAnswer(answer, expected) ? "correct" : "incorrect");
+            setResult(matchesAnyAnswer(answer) ? "correct" : "incorrect");
             return;
         }
 
@@ -334,9 +342,22 @@ const TypingPractice = ({
                             )}
                         >
                             {result === "correct" ? (
-                                <p className="flex items-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
-                                    <CheckCircle2 className="size-5" /> Correct!
-                                </p>
+                                <>
+                                    <p className="flex items-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
+                                        <CheckCircle2 className="size-5" />
+                                        {isCorrectAnswer(answer, expected)
+                                            ? "Correct!"
+                                            : "Correct! But I expected something else!"}
+                                    </p>
+                                    {!isCorrectAnswer(answer, expected) && (
+                                        <dl className="grid gap-1">
+                                            <div className="flex gap-2">
+                                                <dt className="w-30 shrink-0 text-muted-foreground">Expected answer:</dt>
+                                                <dd className="whitespace-pre-wrap break-words font-medium">{expected}</dd>
+                                            </div>
+                                        </dl>
+                                    )}
+                                </>
                             ) : (
                                 <>
                                     <p className="flex items-center gap-2 font-semibold text-red-600 dark:text-red-400">
