@@ -35,7 +35,7 @@ const MODES: Array<{ value: Mode; label: string; icon: typeof Layers }> = [
 
 const StudyPanel = ({ setId, cards, gradient, progress, onProgressChange }: StudyPanelProps) => {
     const [mode, setMode] = useState<Mode>("flashcards");
-    const [reversed, setReversed] = useState(false);
+    const [reversed, setReversed] = useState(true); // definitions first by default; "Swap sides" toggles
     const [shuffleTyping, setShuffleTyping] = useState(true);
     const [dueIds, setDueIds] = useState<Set<string> | null>(null);
     const [saveError, setSaveError] = useState<string | null>(null);
