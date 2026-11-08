@@ -63,6 +63,8 @@ const TypingPractice = ({
     const [outcomes, setOutcomes] = useState<Outcome[]>([]);
     const [answer, setAnswer] = useState("");
     const [result, setResult] = useState<Result | null>(null);
+    // True when the user marked a wrong-looking answer as right via "I was right".
+    const [markedRight, setMarkedRight] = useState(false);
     const [autoCaps, setAutoCaps] = useLocalStorageState(AUTO_CAPS_STORAGE_KEY, false);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -86,6 +88,7 @@ const TypingPractice = ({
         setOutcomes([]);
         setAnswer("");
         setResult(null);
+        setMarkedRight(false);
         setStarted(true);
     };
 
@@ -239,8 +242,8 @@ const TypingPractice = ({
         e.preventDefault();
 
         if (result === null) {
-            if (!answer.trim()) return;
-            setResult(matchesAnyAnswer(answer) ? "correct" : "incorrect");
+            // An empty answer counts as "don't know", so Enter works on an empty input too.
+            setResult(answer.trim() && matchesAnyAnswer(answer) ? "correct" : "incorrect");
             return;
         }
 
@@ -250,6 +253,7 @@ const TypingPractice = ({
         setPosition((p) => p + 1);
         setAnswer("");
         setResult(null);
+        setMarkedRight(false);
     };
 
     return (
@@ -273,7 +277,14 @@ const TypingPractice = ({
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="overflow-hidden rounded-3xl border bg-card shadow-lg">
+            <form
+                onSubmit={handleSubmit}
+                // Holding Enter fires repeated keydowns; ignore the repeats so one press = one action.
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" && e.repeat) e.preventDefault();
+                }}
+                className="overflow-hidden rounded-3xl border bg-card shadow-lg"
+            >
                 <div className={cn("h-2 bg-gradient-to-r", gradient)} />
                 <div className="space-y-6 p-6 sm:p-8">
                     <div className="space-y-2 text-center">
@@ -345,11 +356,11 @@ const TypingPractice = ({
                                 <>
                                     <p className="flex items-center gap-2 font-semibold text-emerald-600 dark:text-emerald-400">
                                         <CheckCircle2 className="size-5" />
-                                        {isCorrectAnswer(answer, expected)
+                                        {markedRight || isCorrectAnswer(answer, expected)
                                             ? "Correct!"
                                             : "Correct! But I expected something else!"}
                                     </p>
-                                    {!isCorrectAnswer(answer, expected) && (
+                                    {markedRight && (
                                         <dl className="grid gap-1">
                                             <div className="flex gap-2">
                                                 <dt className="w-30 shrink-0 text-muted-foreground">Expected answer:</dt>
@@ -388,12 +399,16 @@ const TypingPractice = ({
                                 </Button>
                             )}
                             {result === "incorrect" && answer.trim() && (
-                                <Button type="button" variant="ghost" onClick={() => setResult("correct")}>
+                                <Button type="button" variant="ghost" onClick={() => {
+                                        setResult("correct");
+                                        setMarkedRight(true);
+                                    }}
+                                >
                                     I was right
                                 </Button>
                             )}
                         </div>
-                        <Button type="submit" disabled={result === null && !answer.trim()}>
+                        <Button type="submit">
                             {result === null ? (
                                 "Check"
                             ) : (
