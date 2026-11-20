@@ -65,6 +65,9 @@ const TypingPractice = ({
     const [result, setResult] = useState<Result | null>(null);
     // True when the user marked a wrong-looking answer as right via "I was right".
     const [markedRight, setMarkedRight] = useState(false);
+    // Answers of matching cards (same prompt, several answers) that were already typed correctly. It survives
+    // "Retry missed" and is only cleared when a fresh session starts. Entries look like "<prompt>\u0000<answer>".
+    const [usedAnswers, setUsedAnswers] = useState<string[]>([]);
     const [autoCaps, setAutoCaps] = useLocalStorageState(AUTO_CAPS_STORAGE_KEY, false);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +85,8 @@ const TypingPractice = ({
     const promptOf = (card: FlashCard) => (reversed ? card.definition : card.term);
     const expectedOf = (card: FlashCard) => (reversed ? card.term : card.definition);
 
-    const startRound = (list: FlashCard[]) => {
+    const startRound = (list: FlashCard[], resetUsedAnswers = true) => {
+        if (resetUsedAnswers) setUsedAnswers([]);
         setQueue(shuffle ? shuffled(list) : list);
         setPosition(0);
         setOutcomes([]);
@@ -210,7 +214,7 @@ const TypingPractice = ({
 
                 <div className="flex flex-wrap justify-center gap-3">
                     {missed.length > 0 && (
-                        <Button onClick={() => startRound(missed)}>
+                        <Button onClick={() => startRound(missed, false)}>
                             <RotateCcw /> Retry missed ({missed.length})
                         </Button>
                     )}
@@ -230,20 +234,61 @@ const TypingPractice = ({
     const expected = expectedOf(card);
     const progress = (position / queue.length) * 100;
 
-    // Cards in the whole set that show the same prompt as this one (this card included). Typing the answer of
-    // any of them counts as correct, e.g. two terms with the same definition when the sides are swapped.
+    // Cards in the whole set that show the same prompt as this one (this card included), e.g. "house" with the
+    // answers "thuis" and "huis", or two terms with the same definition when the sides are swapped.
     const sharedPromptCards = cards.filter(
         (c) => normalizeAnswer(promptOf(c)) === normalizeAnswer(promptOf(card)),
     );
     const matchesAnyAnswer = (input: string) =>
         isCorrectAnswer(input, expected) || sharedPromptCards.some((c) => isCorrectAnswer(input, expectedOf(c)));
 
+    // The different answers of that group. With more than one, this is a matching group and every answer
+    // can be typed as many times as it occurs in the set (two "house" -> "huis" cards allow "huis" twice).
+    const promptKey = normalizeAnswer(promptOf(card));
+    const keyOf = (version: string) => `${promptKey}\u0000${normalizeAnswer(version)}`;
+    const versions = sharedPromptCards
+        .map(expectedOf)
+        .filter((v, i, all) => all.findIndex((o) => normalizeAnswer(o) === normalizeAnswer(v)) === i);
+    const isMatchingGroup = versions.length > 1;
+    const capacityOf = (version: string) =>
+        sharedPromptCards.filter((c) => normalizeAnswer(expectedOf(c)) === normalizeAnswer(version)).length;
+    const usedCountOf = (version: string) => usedAnswers.filter((key) => key === keyOf(version)).length;
+    const unusedVersions = versions.filter((v) => usedCountOf(v) < capacityOf(v));
+    // Every version used (more cards than versions, e.g. a duplicate card): start the cycle over.
+    const cycleRestarts = isMatchingGroup && unusedVersions.length === 0;
+    const availableVersions = cycleRestarts ? versions : unusedVersions;
+    // A version of this group that was typed correctly before and so can't be used again.
+    const usedVersionTyped =
+        result === "incorrect" && isMatchingGroup && answer.trim()
+            ? versions.find((v) => !availableVersions.includes(v) && isCorrectAnswer(answer, v))
+            : undefined;
+
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault();
 
         if (result === null) {
             // An empty answer counts as "don't know", so Enter works on an empty input too.
-            setResult(answer.trim() && matchesAnyAnswer(answer) ? "correct" : "incorrect");
+            if (!answer.trim()) {
+                setResult("incorrect");
+                return;
+            }
+            if (!isMatchingGroup) {
+                setResult(matchesAnyAnswer(answer) ? "correct" : "incorrect");
+                return;
+            }
+
+            const match = availableVersions.find((v) => isCorrectAnswer(answer, v));
+            if (match) {
+                setUsedAnswers((prev) => {
+                    const base = cycleRestarts
+                        ? prev.filter((key) => !versions.some((v) => keyOf(v) === key))
+                        : prev;
+                    return [...base, keyOf(match)];
+                });
+                setResult("correct");
+            } else {
+                setResult("incorrect");
+            }
             return;
         }
 
@@ -374,6 +419,19 @@ const TypingPractice = ({
                                     <p className="flex items-center gap-2 font-semibold text-red-600 dark:text-red-400">
                                         <XCircle className="size-5" /> Not quite
                                     </p>
+                                    {usedVersionTyped && (
+                                        <p>
+                                            You already used "{usedVersionTyped}"{" "}
+                                            {capacityOf(usedVersionTyped) > 1
+                                                ? `${capacityOf(usedVersionTyped)} times`
+                                                : "once"}{" "}
+                                            in this session. I expected{" "}
+                                            {availableVersions.length === 1
+                                                ? "the other version"
+                                                : "one of the other versions"}
+                                            .
+                                        </p>
+                                    )}
                                     <dl className="grid gap-1">
                                         {answer.trim() && (
                                             <div className="flex gap-2">
@@ -382,8 +440,14 @@ const TypingPractice = ({
                                             </div>
                                         )}
                                         <div className="flex gap-2">
-                                            <dt className="w-28 shrink-0 text-muted-foreground">Correct answer</dt>
-                                            <dd className="whitespace-pre-wrap break-words font-medium">{expected}</dd>
+                                            <dt className="w-28 shrink-0 text-muted-foreground">
+                                                {isMatchingGroup && availableVersions.length > 1
+                                                    ? "Correct answers"
+                                                    : "Correct answer"}
+                                            </dt>
+                                            <dd className="whitespace-pre-wrap break-words font-medium">
+                                                {isMatchingGroup ? availableVersions.join(" / ") : expected}
+                                            </dd>
                                         </div>
                                     </dl>
                                 </>
